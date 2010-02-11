@@ -309,6 +309,16 @@ table.skin td.submit {
   width: 200px;
 }
 
+td.sort-handle {
+  color: #CCCCCC;
+  border-right: none;
+}
+
+td.sort-handle-next {
+  border-left: none;
+}
+
+
 #openpne_version {
   padding: 5px;
 }

@@ -3,9 +3,9 @@
 
 <h3>プロフィール項目一覧</h3>
 <p><?php echo link_to('プロフィール項目登録', 'profile/edit') ?></p>
-<table id="profiles">
+<table>
 <thead><tr>
-<th colspan="2">操作</th>
+<th colspan="3">操作</th>
 <th>ID</th>
 <th>項目名</th>
 <th>識別名</th>
@@ -19,10 +19,11 @@
 <th>変更</th>
 <th>検索</th>
 </tr></thead>
+<tbody id="profiles">
 <?php foreach ($profiles as $value): ?>
-<tbody id="profile_<?php echo $value->getId() ?>" class="sortable">
-<tr>
-<td><?php echo link_to('変更', 'profile/edit?id=' . $value->getId()) ?></td>
+<tr id="profile_<?php echo $value->getId() ?>">
+<td class="sort-handle sortable">||</td>
+<td class="sort-handle-next"><?php echo link_to('変更', 'profile/edit?id=' . $value->getId()) ?></td>
 <td><?php echo link_to('削除', 'profile/delete?id=' . $value->getId()) ?></td>
 <td><?php echo $value->getId() ?></td>
 <?php if ($value->isPreset()) : ?>
@@ -48,12 +49,13 @@
 <td><?php echo ($value->getIsDispConfig() ? '○' :'×') ?></td>
 <td><?php echo ($value->getIsDispSearch() ? '○' : '') ?></td>
 </tr>
-</tbody>
 <?php endforeach; ?>
+</tbody>
 </table>
 <?php echo sortable_element('profiles',array(
-  'tag' => 'tbody',
-  'url' => 'profile/sortProfile'
+  'tag' => 'tr',
+  'url' => 'profile/sortProfile',
+  'handles' => '$$("#profiles .sort-handle")',
 )) ?>
 
 <h3>プロフィール選択肢一覧</h3>
@@ -62,53 +64,41 @@
 <?php if (!$value->isPreset() && ($value->getFormType() == 'radio' || $value->getFormType() == 'checkbox' || $value->getFormType() == 'select')) : ?>
 <?php $selectionCount++; ?>
 <h4><a name="<?php echo $value->getName() ?>"><?php echo $value->getCaption() ?></a></h4>
-<table id="profile_options_<?php echo $value->getId() ?>">
-<thead><tr>
-<th>ID</th>
-<th>項目名(ja_JP)</th>
-<th colspan="2">操作</th>
-</tr></thead>
-<?php foreach ($option_form[$value->getId()] as $form) : ?>
-<form action="<?php echo url_for('profile/editOption?id=' . $form->getObject()->getId()) ?>" method="post">
-<?php if (!$form->getObject()->isNew()) : ?>
-<tbody id="profile_option_<?php echo $form->getObject()->getId() ?>" class="sortable">
-<?php else: ?>
-<tbody>
-<?php endif; ?>
-<tr>
-<td><?php echo ($form->getObject()->isNew() ? '-' : $form->getObject()->getId()) ?></td>
-<td>
-<?php echo $form['ja_JP']['value']->render() ?>
-</td>
-<?php if ($form->getObject()->isNew()) : ?>
-<td colspan="2">
-<?php echo $form->renderHiddenFields() ?>
-<input type="submit" value="項目追加" />
-</td>
-</form>
-<?php else : ?>
-<td>
-<?php echo $form->renderHiddenFields() ?>
-<input type="submit" value="変更" />
-</td>
-</form>
-<td>
-<?php echo $form['id']->render() ?>
-<?php echo $form['profile_id']->render() ?>
-<form action="<?php echo url_for('profile/deleteOption?id=' . $form->getObject()->getId()) ?>" method="post">
-<input type="submit" value="削除" />
-</form>
-</td>
-<?php endif; ?>
+<?php $optionForm = $optionForms[$value->getId()] ?>
+<?php echo $optionForm->renderFormTag(url_for('profile/editOption?id='.$value->getId())) ?>
+<table>
+<thead>
+  <th colspan="2">ID</th>
+  <th>項目名(<?php echo $sf_user->getCulture() ?>)</th>
+  <th>削除</th>
+</thead>
+<tbody id="profile_options_<?php echo $value->getId() ?>">
+<?php foreach (array_keys($optionForm->getProfileOptions()) as $id): ?>
+<tr id="profile_option_<?php echo $id ?>" class="sort">
+  <td class="sort-handle sortable">||</td>
+  <td class="sort-handle-next"><?php echo $id ?></td>
+  <td><?php echo $optionForm[$id]->renderError() ?><?php echo $optionForm[$id] ?></td>
+  <td><?php echo $optionForm['is_delete_'.$id]->renderError() ?><?php echo $optionForm['is_delete_'.$id] ?></td>
 </tr>
-</tbody>
 <?php endforeach; ?>
+<tr>
+  <td colspan="2">新規</td>
+  <td><?php echo $optionForm['new']->renderError() ?><?php echo $optionForm['new']->render() ?></td>
+  <td>&nbsp;</td>
+</tr>
+<tr>
+  <td colspan="4"><input type="submit" value="<?php echo __('Edit') ?>" /></td>
+</td>
+</tbody>
 </table>
 <?php echo sortable_element('profile_options_'.$value->getId(),array(
-  'tag'  => 'tbody',
-  'only' => 'sortable',
-  'url'  => 'profile/sortProfileOption'
+  'tag'  => 'tr',
+  'only' => 'sort',
+  'handles' => '$$("#profile_options_'.$value->getId().' .sort-handle")',
 )) ?>
+<?php echo $optionForm->renderHiddenFields() ?>
+</form>
+
 <?php endif; ?>
 <?php endforeach; ?>
 <?php if (!$selectionCount): ?>

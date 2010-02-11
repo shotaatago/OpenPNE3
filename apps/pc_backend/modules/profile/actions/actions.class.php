@@ -26,16 +26,21 @@ class profileActions extends sfActions
   public function executeList($request)
   {
     $this->profiles = Doctrine::getTable('Profile')->retrievesAll();
-    $this->option_form = array();
 
-    foreach ($this->profiles as $value) {
-      $this->option_form[$value->getId()] = array();
-      foreach ($value->getProfileOption() as $option) {
-        $this->option_form[$value->getId()][$option->getId()] = new ProfileOptionForm(Doctrine::getTable('ProfileOption')->find($option->getId()));
+    // NOTE: for editOption action
+    if (!isset($this->optionForms))
+    {
+      $this->optionForms = array();
+    }
+
+    foreach ($this->profiles as $profile)
+    {
+      if (!isset($this->optionForms[$profile->getId()]))
+      {
+        $form = new opProfileOptionsForm();
+        $form->setProfile($profile);
+        $this->optionForms[$profile->getId()] = $form;
       }
-      $newProfileOption = new ProfileOption();
-      $newProfileOption->setProfileId($value->getId());
-      $this->option_form[$value->getId()][] = new ProfileOptionForm($newProfileOption);
     }
   }
 
@@ -80,21 +85,20 @@ class profileActions extends sfActions
   */
   public function executeEditOption($request)
   {
-    $this->profileOption = Doctrine::getTable('ProfileOption')->find($request->getParameter('id'));
-    $this->form = new ProfileOptionForm($this->profileOption);
+    $profile = Doctrine::getTable('Profile')->find($request->getParameter('id'));
+    $this->forward404Unless($profile);
 
-    if ($request->isMethod('post')) {
-      $parameter = $request->getParameter('profile_option');
-      if ($this->form->getObject()->isNew())
-      {
-        $parameter['sort_order'] = Doctrine::getTable('ProfileOption')->getMaxSortOrder();
-      }
-      $this->form->bind($parameter);
-      if ($this->form->isValid()) {
-        $this->form->save();
-      }
+    $form = new opProfileOptionsForm();
+    $form->setProfile($profile);
+    if ($form->bindAndSave($request->getParameter('profile_options')))
+    {
+      $this->redirect('profile/list#'.$profile->getName());
     }
-    $this->redirect('profile/list');
+
+    $this->optionForms = array();
+    $this->optionForms[$profile->getId()] = $form;
+    $this->executeList($request);
+    $this->setTemplate('list');
   }
 
  /**
@@ -146,38 +150,6 @@ class profileActions extends sfActions
         {
           $profile->setSortOrder($i * 10);
           $profile->save();
-        }
-      }
-    }
-    return sfView::NONE;
-  }
-
-  /**
-   * Executes sortProfileOption action
-   *
-   * @param sfRequest $request A request object
-   */
-  public function executeSortProfileOption($request)
-  {
-    if ($request->isXmlHttpRequest())
-    {
-      $parameters = $request->getParameterHolder();
-      $keys       = $parameters->getNames();
-      foreach ($keys as $key)
-      {
-        if (preg_match('/^profile_options_\d+$/', $key, $match))
-        {
-          $order = $parameters->get($match[0]);
-          for ($i = 0; $i < count($order); $i++)
-          {
-            $profileOption = Doctrine::getTable('ProfileOption')->find($order[$i]);
-            if ($profileOption)
-            {
-              $profileOption->setSortOrder($i * 10);
-              $profileOption->save();
-            }
-          }
-          break;
         }
       }
     }
